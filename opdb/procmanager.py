@@ -62,12 +62,12 @@ class PutRec2FB():
 
 
 # xpath = "D:/Cloud/Dropbox/DBs/POproto/rep/xxx_COMPLETE.xml"
-pb = PutRec2FB(xpath)
+#pb = PutRec2FB(xpath)
 #df = pb.getRecDF()
 #pb.putBM()
 #pb.putTrials()
 #pb.putTxs()
-pb.putAllData()
+#pb.putAllData()
 #df = pb.df_bm
 #df.columns
 #pb.putReport()

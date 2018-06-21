@@ -24,7 +24,7 @@ class Xml2DF():
                            ["variant-allele-frequency", "VariantAlleleFrequency_1_3"]]
 
     def __init__(self, xpath):
-        print("xml2df ver14")
+        print("xml2df ver17")
         import xml.etree.ElementTree as et
         import pandas as pd
         from collections import Counter as cc
@@ -43,7 +43,7 @@ class Xml2DF():
             if(pre in dict_0):
                 dict_0[post] = dict_0.pop(pre)
             else:
-                dict_0.update({post: "NA"})
+                dict_0.update({post: "No"})
         return dict_0
 
     def replaceDFcolnames(self, df, replaceList):
@@ -68,7 +68,8 @@ class Xml2DF():
         # report_attrib = self.replaceDictKeys(report_attrib, ReplaceList_report)
         df = self.pd.DataFrame(report_attrib, index=[self.el.tag])
         df = self.replaceDFcolnames(df, self.ReplaceList_report)
-        df.fillna("NA")
+        ## hear "No" in report.
+        df.fillna("No")
         for col in df.__iter__():
             print(col)
             df[col] = df[col].replace("'", "''", regex=True)
@@ -81,8 +82,8 @@ class Xml2DF():
         posResDF = self.replaceDFcolnames(posResDF, self.ReplaceList_summary)
         #remove "user-alteration-name"
         del posResDF['user-alteration-name']
-        #change nan to "NA"
-        posResDF = posResDF.fillna("NA")
+        #change nan to "No"
+        posResDF = posResDF.fillna("No")
         return (posResDF)
 
     def getProgenyTreeFromLabel(self, labelList):
@@ -254,13 +255,16 @@ class Xml2DF():
         tx_stsInThisDis = self.getTree2TreeByLabel(ti, ["status-in-this-indication", "disease-list"])
         tx_stsInThisDisList = [i.text for i in tx_stsInThisDis]
         tx_stsInThisDisList = ",".join(tx_stsInThisDisList)
+        tx.update({"CurrentStatus4This": ": ".join([tx_stsInThisST, tx_stsInThisDisList])})
         tx_stsInThis = ": ".join(["ThisDis", tx_stsInThisST, tx_stsInThisDisList])
+
 
         tx_stsInOtherST = self.getTree2TreeByLabel(ti, ["status-in-other-indications", "status"]).text
         tx_stsInOtherDis = self.getTree2TreeByLabel(ti, ["status-in-other-indications", "disease-list"])
         tx_stsInOtherDisList = [i.text for i in tx_stsInOtherDis]
         tx_stsInOtherDisList = ",".join(tx_stsInOtherDisList)
 
+        tx.update({"CurrentStatus4Other": ": ".join([tx_stsInOtherST, tx_stsInOtherDisList])})
         tx_stsInOther = ": ".join(["OtherDis", tx_stsInOtherST, tx_stsInOtherDisList])
         tx.update({"CurrentStatus": tx_stsInThis + "\n" + tx_stsInOther})
 
@@ -314,6 +318,14 @@ class Xml2DF():
         for (cont, num) in trial_cont:
             trial_cs = trial_cs + cont + ": " + str(num) + ", "
         trial_dcit.update({"TrialSites": trial_cs})
+
+        #target genes
+        trial_targets = [i.text for i in
+                         self.getTree2TreeByLabel(trial, ["targets"])]
+        trial_targets = ", ".join(trial_targets)
+
+        trial_dcit.update({"TrialTargets": trial_targets})
+
         trial_df = self.pd.DataFrame(trial_dcit, index=[trial.tag])
         return (trial_df)
 
@@ -334,13 +346,13 @@ class Xml2DF():
         return df
 
 #xpath = "D:/Cloud/Dropbox/DBs/POproto/rep/xxx_COMPLETE.xml"
-op = Xml2DF(xpath)
+#op = Xml2DF(xpath)
 # # # # string = "afwwerre'afweg'aef"
 # # # # string2 = op.procStrQ(string)
 # # # # print(string2)
 # df = op.getSummaryDF()
 # df2 = op.getMarkersDF()
-df3 = op.getTrialsDF()
+#df3 = op.getTrialsDF()
 # df = op.getTxsDF()
 # df = op.getBMmerge()
 # list(df.columns).index("Phase_1_Data_2_x_4")

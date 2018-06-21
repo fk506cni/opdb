@@ -4,7 +4,7 @@ import pyodbc
 class ConnectDB():
 
     def __init__(self):
-        print("connectDB ver 2")
+        print("connectDB ver 4")
         self.dsn = "OPDB64"
         self.user = "checkUser"
         self.PWD = "114514"
