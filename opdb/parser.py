@@ -1,6 +1,8 @@
 
 import math
-
+import pandas as pd
+import re
+import io
 
 class Xml2DF():
 
@@ -26,7 +28,7 @@ class Xml2DF():
     def __init__(self, xpath):
         print("xml2df ver17")
         import xml.etree.ElementTree as et
-        import pandas as pd
+#        import pandas as pd
         from collections import Counter as cc
         self.pd = pd
         self.et = et
@@ -382,3 +384,167 @@ class Xml2DF():
 # #dfm2['TherapiesApprovedinOtherInd_1_1']
 # #type(dfm)
 
+class txt2DF():
+
+    Replacelist_reportJP = [["testid", "jpTestID"],
+                            ["patientid", "KUH_ReportID"],
+                            ["reportid", "ReportID"],
+                            ["datetime", "ReportDate"],
+                            ["creator", "jpCreator"],
+                            ["refver", "jpRefver"],
+                            ["pgver", "jpPgver"],
+                            ["num-drugs", "jpNum_drugs"],
+                            ["TSRファイル名", "jpTSR_filename"],
+                            ["desease", "jpDesease"]
+                            ]
+
+    Replacelist_header = [["レポート作成日","ReportedDate"],
+                          ["MKI検査番号","MKI_ID"],
+                          ["識別番号","MKI_sampleID"],
+                          ["検体ID",""]]
+
+    def __init__(self):
+        tpath = "D:/Cloud/Dropbox/DBs/POproto/rep/jrep/unkotest.data"
+        f = open(tpath,'r',encoding="utf-8")
+        data = f.read()
+        f.close()
+
+        strlist = re.split('\[[0-9A-Z]*\]\\n', data)
+        self.strlist = strlist[1:len(strlist)]
+        taglist = re.findall('\[[0-9A-Z]*\]\\n', data)
+        taglist = ["".join(i.splitlines()) for i in taglist]
+        taglist = [re.sub(r"[\[\]]", "", i) for i in taglist]
+        self.taglist = taglist
+
+        tag = "INFORMATION"
+        s = self.Tag2Str(tag)
+        strs = s.splitlines()
+        while strs.count("") > 0:
+            del strs[strs.index("")]
+        strs = [str.split(" # ")[0] for str in strs]
+        #print(strs)
+        d = dict()
+        for s in strs:
+            key, atr = tuple(s.split("="))
+            d.update({key: atr})
+
+        self.reportID = {"ReportID":d["reportid"]}
+        self.kuhID = {"KUH_ReportID": d["patientid"]}
+        self.id_dict = dict()
+        self.id_dict.update(self.reportID)
+        self.id_dict.update(self.kuhID)
+
+    def delEmp(self, strs):
+        while strs.count("") > 0:
+            del strs[strs.index("")]
+        return strs
+
+    def replaceDFcolnames(self, df, replaceList):
+        for (pre, post) in replaceList:
+            if(pre in df.columns):
+                df = df.rename(columns={pre: post})
+            else:
+                df[post] = self.pd.Series(["No" for i in range(len(df.index))]).values
+        return df
+
+    def Tag2Str(self, tag):
+        if tag in self.taglist:
+            tag_ind = self.taglist.index(tag)
+            str = self.strlist[tag_ind]
+         #   print(str)
+            return(str)
+        else:
+            print(tag+" is not in taglist")
+            return(None)
+
+    def getInfo(self):
+        print("get info")
+        tag = "INFORMATION"
+        str = self.Tag2Str(tag)
+        strs = str.splitlines()
+        strs = self.delEmp(str.splitlines())
+        # while strs.count("") > 0:
+        #     del strs[strs.index("")]
+        strs = [str.split(" # ")[0] for str in strs]
+        #print(strs)
+        d = dict()
+        for s in strs:
+            key, atr = tuple(s.split("="))
+            d.update({key: atr})
+        #print(d)
+        df = pd.DataFrame(d, index=[tag])
+        df = self.replaceDFcolnames(df, self.Replacelist_reportJP)
+        #print(df)
+        return df
+
+    def getSummary2(self):
+        print("get summary2")
+        tag = "SUMMARY2"
+        strs = self.Tag2Str(tag)
+        df = pd.read_table(io.StringIO(strs), sep='\t',header=None)
+        df = df.rename(columns ={0:'NumberInReport', 1:'LinkedGeneSymbol', 2: 'DrugWithTradeName', 3:'DomesticApproval', 4:'FDAApproval', 5:'DomesticTrials'})
+
+        for key, val in self.id_dict.items():
+            df[key] = pd.Series([val for i in range(len(df))]).values
+        #
+        # id_df = pd.DataFrame(self.id_dict, index=[tag])
+        # df = pd.concat([atr_df, id_df], axis=1)
+        #df = pd.read_table(strs, sep="\t")
+        return df
+
+    def getHeader(self):
+        print("get header")
+        tag = "HEADER"
+        strs = self.Tag2Str(tag)
+        strs = self.delEmp(strs.splitlines())
+        d_head = dict()
+
+        for s in strs:
+            (key, atr) = tuple(re.split(r": |： ", s))
+            d_head.update({key: atr})
+        print(d_head)
+
+    def getDetail(self):
+        tag = "DETAIL1"
+        strs = self.Tag2Str(tag)
+        str_list = re.split(r"2-[0-9]\. [0-9a-zA-Zぁ-んァ-ン一-龥\t・, ' ]+\n", strs)
+        while str_list.count("") > 0:
+            del str_list[str_list.index("")]
+        tag_list = re.findall(r"2-[0-9]\. [0-9a-zA-Zぁ-んァ-ン一-龥\t・, ' ]+\n", strs)
+        # for s , tag in zip(str_list, tag_list):
+        #     print("unko")
+        #     print(tag)
+        #     print(s)
+
+        ##tsr_annotated
+        s0 = str_list[0]
+        tags0 = re.findall(r"[A-Z]+[A-Za-z\(\)]+ を用いた国内治験・臨床試験\(1\)\t\t\t\tDTITLE\n", s0)
+        tags0 = [re.findall(r"[A-Z]+[A-Za-z\(\)]+", i)[0] for i in tags0]
+
+
+        strs0 = re.split(r"[A-Z]+[A-Za-z\(\)]+ を用いた国内治験・臨床試験\(1\)\t\t\t\tDTITLE\n", s0)
+        strs0 = self.delEmp(strs0)
+        print(strs0)
+        df = self.parseTrialJP(strs0)
+        return df
+
+    def parseTrialJP(self, strs):
+        dfs = [pd.read_table(io.StringIO(s), sep='\t') for s in strs]
+        for d in dfs:
+            print(d)
+        df = pd.concat(dfs)
+        return df
+
+
+
+
+
+t2 = txt2DF()
+t2.Tag2Str('SUMMARY1')
+t2.Tag2Str("HEADER")
+#df = t2.getSummary2()
+#t2.getHeader()
+df = t2.getDetail()
+
+str = " # aaa"
+print(re.sub(r" # ", "", str))
