@@ -21,12 +21,12 @@ class Xml2DF():
                            ["pathway", "BiologicalAssociation_1_1"],
                            ["result-type", "Test_1_1"],
                            ["result-value", "Result_1_1"],
-                           ["therapeutic-qualifier", "isPositive"],
+                           ["therapeutic-qualifier", "Therapeutic_qualifier_1_xx"],
                            ["user-alteration-name", "user-alteration-name"],
                            ["variant-allele-frequency", "VariantAlleleFrequency_1_3"]]
 
     def __init__(self, xpath):
-        print("xml2df ver17")
+        print("xml2df ver23")
         import xml.etree.ElementTree as et
 #        import pandas as pd
         from collections import Counter as cc
@@ -38,6 +38,12 @@ class Xml2DF():
         self.ids = {"AnnotatedReportID": self.el.attrib["report-id"]}
         # print(self.el.tag)
         print("xml2df initialized")
+
+    def _bool2str(self, bl):
+        if bl:
+            return "True"
+        else:
+            return "False"
 
     def replaceDictKeys(self, dict_0, replaceList):
         for (pre, post) in replaceList:
@@ -53,7 +59,7 @@ class Xml2DF():
             if(pre in df.columns):
                 df = df.rename(columns={pre: post})
             else:
-                df[post] = self.pd.Series(["No" for i in range(len(df.index))]).values
+                df[post] = self.pd.Series(["None" for i in range(len(df.index))]).values
         return df
 
     def empty2x(self, val, x):
@@ -71,7 +77,7 @@ class Xml2DF():
         df = self.pd.DataFrame(report_attrib, index=[self.el.tag])
         df = self.replaceDFcolnames(df, self.ReplaceList_report)
         ## hear "No" in report.
-        df.fillna("No")
+        df.fillna("NA")
         for col in df.__iter__():
             print(col)
             df[col] = df[col].replace("'", "''", regex=True)
@@ -82,10 +88,21 @@ class Xml2DF():
         posRes = self.getProgenyTreeFromLabel(labelList)
         posResDF = self.getChildrenDF(posRes, "positive-result")
         posResDF = self.replaceDFcolnames(posResDF, self.ReplaceList_summary)
+
+        ispos = []
+        for col, row in posResDF.iterrows():
+            bl = row["TherapiesApprovedinThisDis_1_1"] == "Yes" \
+                 or row["MayIndResist2Tx_1_1"] == "Yes" \
+                 or row["TherapiesApprovedinOtherInd_1_1"] == "Yes" \
+                 or row["Trials_1_1"] == "Yes"
+            ispos.append(self._bool2str(bl))
+
+        posResDF["isPositive"] = self.pd.Series(ispos).values
+
         #remove "user-alteration-name"
         del posResDF['user-alteration-name']
         #change nan to "No"
-        posResDF = posResDF.fillna("No")
+        posResDF = posResDF.fillna("None")
         return (posResDF)
 
     def getProgenyTreeFromLabel(self, labelList):
@@ -312,12 +329,24 @@ class Xml2DF():
         trial_dcit.update({"TrialTitle": self.getTree2TreeByLabel(trial, ["title"]).text})
         trial_dcit.update({"TrialPhase": self.getTree2TreeByLabel(trial, ["phase"]).text})
         trial_dcit.update({"TrialLocation_Contact": self.getTree2TreeByLabel(trial, ["overall-contact"]).text})
+
         trial_cont = [self.getTree2TreeByLabel(i, ["country"]).text for i in
                       self.getTree2TreeByLabel(trial, ["trial-sites"])]
-        trial_cont = self.cc(trial_cont)
-        trial_cont = sorted(trial_cont.items())
+        trial_inJp = self._bool2str("Japan" in trial_cont)
+        print(trial_cont)
+        print(type(trial_cont))
+        print(trial_inJp)
+
+
+        trial_cont_dict = self.cc(trial_cont)
+        print(type(trial_cont_dict))
+
+        trial_cont_dict = sorted(trial_cont_dict.items())
+
+        trial_dcit.update({"TrialInJp": trial_inJp})
+
         trial_cs = ""
-        for (cont, num) in trial_cont:
+        for (cont, num) in trial_cont_dict:
             trial_cs = trial_cs + cont + ": " + str(num) + ", "
         trial_dcit.update({"TrialSites": trial_cs})
 
@@ -346,6 +375,8 @@ class Xml2DF():
     def nan2NA_DF(self, df):
         df.applymap(lambda x: self.nan2NA(x))
         return df
+
+
 
 #xpath = "D:/Cloud/Dropbox/DBs/POproto/rep/xxx_COMPLETE.xml"
 #op = Xml2DF(xpath)
@@ -403,12 +434,18 @@ class txt2DF():
                           ["識別番号","MKI_sampleID"],
                           ["検体ID",""]]
 
-    def __init__(self):
-        tpath = "D:/Cloud/Dropbox/DBs/POproto/rep/jrep/unkotest.data"
+    Replacelist_trials = [["試験ID", "TrialID"],
+                          ["対象疾患", "TargetDis"],
+                          ["試験名称", "TrialName"],
+                          ["実施機関（連絡先）", "TrialInst_Contact"]]
+
+    def __init__(self, tpath):
+        print("txt2DF ver1.1")
+        #tpath = "D:/Cloud/Dropbox/DBs/POproto/rep/jrep/unkotest.data"
         f = open(tpath,'r',encoding="utf-8")
         data = f.read()
         f.close()
-
+        self.pd = pd
         strlist = re.split('\[[0-9A-Z]*\]\\n', data)
         self.strlist = strlist[1:len(strlist)]
         taglist = re.findall('\[[0-9A-Z]*\]\\n', data)
@@ -417,7 +454,7 @@ class txt2DF():
         self.taglist = taglist
 
         tag = "INFORMATION"
-        s = self.Tag2Str(tag)
+        s = self._Tag2Str(tag)
         strs = s.splitlines()
         while strs.count("") > 0:
             del strs[strs.index("")]
@@ -430,16 +467,42 @@ class txt2DF():
 
         self.reportID = {"ReportID":d["reportid"]}
         self.kuhID = {"KUH_ReportID": d["patientid"]}
+        self.pgVer = d["pgver"]
         self.id_dict = dict()
         self.id_dict.update(self.reportID)
         self.id_dict.update(self.kuhID)
 
-    def delEmp(self, strs):
+    def _isHigh(self, ver = "2.3.9"):
+        vs = list(re.sub(r"\.", "", ver))
+        thisV = list(re.sub(r"\.", "",self.pgVer))
+        res = False
+        vlen = max(len(vs), len(thisV))
+        for i in range(vlen):
+            tI = int(thisV[i])
+            vI = int(vs[i])
+            if tI > vI:
+                res = True
+                break
+            elif tI < vI:
+                res = False
+                break
+            elif tI == vI:
+                #print("pass: "+str(i))
+                continue
+        return res
+
+    def _delEmp(self, strs):
         while strs.count("") > 0:
             del strs[strs.index("")]
         return strs
 
-    def replaceDFcolnames(self, df, replaceList):
+    def _bool2str(self, bl):
+        if bl:
+            return "True"
+        else:
+            return "False"
+
+    def _replaceDFcolnames(self, df, replaceList):
         for (pre, post) in replaceList:
             if(pre in df.columns):
                 df = df.rename(columns={pre: post})
@@ -447,7 +510,7 @@ class txt2DF():
                 df[post] = self.pd.Series(["No" for i in range(len(df.index))]).values
         return df
 
-    def Tag2Str(self, tag):
+    def _Tag2Str(self, tag):
         if tag in self.taglist:
             tag_ind = self.taglist.index(tag)
             str = self.strlist[tag_ind]
@@ -460,9 +523,9 @@ class txt2DF():
     def getInfo(self):
         print("get info")
         tag = "INFORMATION"
-        str = self.Tag2Str(tag)
+        str = self._Tag2Str(tag)
         strs = str.splitlines()
-        strs = self.delEmp(str.splitlines())
+        strs = self._delEmp(str.splitlines())
         # while strs.count("") > 0:
         #     del strs[strs.index("")]
         strs = [str.split(" # ")[0] for str in strs]
@@ -472,16 +535,16 @@ class txt2DF():
             key, atr = tuple(s.split("="))
             d.update({key: atr})
         #print(d)
-        df = pd.DataFrame(d, index=[tag])
-        df = self.replaceDFcolnames(df, self.Replacelist_reportJP)
+        df = self.pd.DataFrame(d, index=[tag])
+        df = self._replaceDFcolnames(df, self.Replacelist_reportJP)
         #print(df)
         return df
 
     def getSummary2(self):
         print("get summary2")
         tag = "SUMMARY2"
-        strs = self.Tag2Str(tag)
-        df = pd.read_table(io.StringIO(strs), sep='\t',header=None)
+        strs = self._Tag2Str(tag)
+        df = pd.read_table(io.StringIO(strs), sep='\t', header=None)
         df = df.rename(columns ={0:'NumberInReport', 1:'LinkedGeneSymbol', 2: 'DrugWithTradeName', 3:'DomesticApproval', 4:'FDAApproval', 5:'DomesticTrials'})
 
         for key, val in self.id_dict.items():
@@ -495,8 +558,8 @@ class txt2DF():
     def getHeader(self):
         print("get header")
         tag = "HEADER"
-        strs = self.Tag2Str(tag)
-        strs = self.delEmp(strs.splitlines())
+        strs = self._Tag2Str(tag)
+        strs = self._delEmp(strs.splitlines())
         d_head = dict()
 
         for s in strs:
@@ -504,9 +567,16 @@ class txt2DF():
             d_head.update({key: atr})
         print(d_head)
 
+        df = pd.DataFrame(d_head, index=[tag])
+        return df
+
     def getDetail(self):
+        #detail1 is clinical trials from MKI Data base.
+        #
+
         tag = "DETAIL1"
-        strs = self.Tag2Str(tag)
+        strs = self._Tag2Str(tag)
+        strs = [re.sub(r"\[BR\]", "", s) for s in strs]
         str_list = re.split(r"2-[0-9]\. [0-9a-zA-Zぁ-んァ-ン一-龥\t・, ' ]+\n", strs)
         while str_list.count("") > 0:
             del str_list[str_list.index("")]
@@ -523,28 +593,65 @@ class txt2DF():
 
 
         strs0 = re.split(r"[A-Z]+[A-Za-z\(\)]+ を用いた国内治験・臨床試験\(1\)\t\t\t\tDTITLE\n", s0)
-        strs0 = self.delEmp(strs0)
-        print(strs0)
-        df = self.parseTrialJP(strs0)
+        strs0 = self._delEmp(strs0)
+        #print(strs0)
+        df0 = self._parseTrialJP(strs0, tags0)
+        df0["IsInTSR"] = pd.Series(["True" for i in range(len(df0))]).values
+        df0["lookEffective"] = pd.Series(["NA" for i in range(len(df0))]).values
+        df0["needTargetinGeneMutation"] = pd.Series(["NA" for i in range(len(df0))]).values
+
+        ##jp report annotated
+        s1 = str_list[1]
+        #print(s1)
+        df1 = self._parseTrialJP([s1], ["NA"])
+        df_lkEf = [self._bool2str("★" in s) for s in df1.loc[:, "TrialName"]]
+        df_ndTGM = [self._bool2str("◎" in s) for s in df1.loc[:, "TrialName"]]
+
+        df1["IsInTSR"] = pd.Series(["False" for i in range(len(df1))]).values
+        df1["lookEffective"] = pd.Series(df_lkEf).values
+        df1["needTargetinGeneMutation"] = pd.Series(df_ndTGM).values
+
+        df = pd.concat([df0, df1])
         return df
 
-    def parseTrialJP(self, strs):
-        dfs = [pd.read_table(io.StringIO(s), sep='\t') for s in strs]
-        for d in dfs:
-            print(d)
-        df = pd.concat(dfs)
+    def _parseTrialJP(self, strs, tags):
+        dfs =[]
+        # print(len(strs))
+        # print(len(tags))
+        for s, tag in zip(strs, tags):
+            s = re.sub(r"試験ID\t対象疾患\t試験名称\t実施機関（連絡先）\tDHEAD\tclass\tf_curated\tf_ct",
+                       "試験ID\t対象疾患\t試験名称\t実施機関（連絡先）\tDHEAD\tclass\tf_curated\tf_ct\tunmet0\tunmet1\tunmet2",
+                       s)
+            # print(s)
+            df_i = pd.read_table(io.StringIO(s), sep="\t")
+            df_i["DrugInTSR"] = pd.Series([tag for i in range(len(df_i))]).values
+            dfs.append(df_i)
+        if(len(dfs) > 1):
+            df = pd.concat(dfs)
+        else:
+            df = dfs[0]
+        df = self._replaceDFcolnames(df, self.Replacelist_trials)
         return df
 
 
+#
+#
+# tpath = "D:/Cloud/Dropbox/DBs/POproto/rep/jrep/unkotest.data"
+# t2 = txt2DF(tpath)
+# t2._Tag2Str('SUMMARY1')
+# t2._Tag2Str("HEADER")
+# df_afw = t2.getInfo()
+# for i in range(10):
+#     print(df_afw.iat[0, i])
+# df_afw.columns
+# print(list(df_afw.iloc[0, :]))
+# df = t2.getSummary2()
+# #t2.getHeader()
+# df = t2.getDetail()
+# df.TrialName
+# df.loc[:,"TrialName"]
 
+#list(re.sub(r"\.", "","2.4.2"))
 
+# t2.isHigh("2.5.8")
 
-t2 = txt2DF()
-t2.Tag2Str('SUMMARY1')
-t2.Tag2Str("HEADER")
-#df = t2.getSummary2()
-#t2.getHeader()
-df = t2.getDetail()
-
-str = " # aaa"
-print(re.sub(r" # ", "", str))
