@@ -1,6 +1,7 @@
 
 from opdb.connector import ConnectDB
 from opdb.parser import Xml2DF
+from opdb.parser import txt2DF
 
 class PutRec2FB():
 
@@ -50,12 +51,65 @@ class PutRec2FB():
         else:
             print("Insertion skip due to None data. target:"+table)
 
-
     def putAllData(self):
         self.putReport()
         self.putBM()
         self.putTxs()
         self.putTrials()
+
+
+class PutJPRec2FB():
+
+    def __init__(self, tpath):
+        self.t2 = txt2DF(tpath)
+        self.cd = ConnectDB()
+        print("processing data:"+tpath)
+
+        self.df_report = self.t2.getInfo()
+        # self.df_drug = self.t2.getSummary2()
+        # self.df_trial = self.t2.getDetail()
+
+    def _putRec2FB(self, df, table):
+        collist = list(df.columns)
+        print("inserting target table:" + table)
+        print("inserting target colmns:"+ str(collist))
+        for i in range(len(df.index)):
+            vallist = list(df.iloc[i])
+            print("inserting val:"+ str(vallist))
+            self.cd.insertDataFromList(table, collist, vallist)
+
+    def _modRec2FB(self, df, table, keycolInds):
+        collist = list(df.columns)
+
+        print("update target table:" + table)
+        print("update target colmns:"+ str(collist))
+
+        for i in range(len(df.index)):
+            vallist = list(df.iloc[i])
+            print("updating val:"+ str(vallist))
+            self.cd.modTableData(collist, vallist, keycolInds, table)
+
+    def _modReportJP(self):
+        df = self.df_report
+        table = "Reports"
+        keycolInds = [2]
+        self._modRec2FB(df, table, keycolInds)
+
+    def _putDrugsJP(self):
+        df = self.df_drug
+        table = "TagGene2TagDrugJp"
+        self._putRec2FB(df, table)
+
+    def _putTrialsJP(self):
+        df = self.df_trial
+        table = "TagGene2TagTrialsJP"
+        self._putRec2FB(df, table)
+
+    def addData(self):
+        self._modReportJP()
+        # self._putDrugsJP()
+        # self._putTrialsJP()
+
 
 
 
@@ -84,7 +138,7 @@ class PutRec2FB():
 #pb.df_marker.iloc[1]
 #list(pb.df_marker.iloc[1])
 #list(pb.df_marker.columns)
-
-# del opdb_dev.Xml2DF
-# del opdb_dev.ConnectDB
-
+#
+# tpath = "D:/Cloud/Dropbox/DBs/POproto/rep/jrep/OP15040706KUH_KUH00019_S4876012_jrep.data"
+# pj = PutJPRec2FB(tpath)
+# pj.addData()

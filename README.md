@@ -1,5 +1,5 @@
 ## opdb
-python package to parse xml report
+python package to parse .xml and .data report
 for a our original Filemaker DB
 This is not to general parpuse. sorry.
 

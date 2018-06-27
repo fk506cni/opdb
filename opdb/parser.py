@@ -51,7 +51,7 @@ class Xml2DF():
             if(pre in dict_0):
                 dict_0[post] = dict_0.pop(pre)
             else:
-                dict_0.update({post: "No"})
+                dict_0.update({post: "None"})
         return dict_0
 
     def replaceDFcolnames(self, df, replaceList):
@@ -472,14 +472,14 @@ class txt2DF():
         self.id_dict.update(self.reportID)
         self.id_dict.update(self.kuhID)
 
-    def _isHigh(self, ver = "2.3.9"):
-        vs = list(re.sub(r"\.", "", ver))
-        thisV = list(re.sub(r"\.", "",self.pgVer))
+    def _ishigh(self, ver1, ver2):
+        v1 = list(re.sub(r"\.", "", ver1))
+        v2 = list(re.sub(r"\.", "",ver2))
         res = False
-        vlen = max(len(vs), len(thisV))
+        vlen = max(len(v1), len(v2))
         for i in range(vlen):
-            tI = int(thisV[i])
-            vI = int(vs[i])
+            tI = int(v1[i])
+            vI = int(v2[i])
             if tI > vI:
                 res = True
                 break
@@ -490,6 +490,12 @@ class txt2DF():
                 #print("pass: "+str(i))
                 continue
         return res
+
+    def _isIn(self, lver= "2.3.9", hver="2.6.0"):
+        thisV = self.pgVer
+        l_bl = self._ishigh(lver, thisV)
+        r_bl = self._ishigh(thisV, hver)
+        return l_bl and r_bl
 
     def _delEmp(self, strs):
         while strs.count("") > 0:
@@ -542,18 +548,23 @@ class txt2DF():
 
     def getSummary2(self):
         print("get summary2")
-        tag = "SUMMARY2"
-        strs = self._Tag2Str(tag)
-        df = pd.read_table(io.StringIO(strs), sep='\t', header=None)
-        df = df.rename(columns ={0:'NumberInReport', 1:'LinkedGeneSymbol', 2: 'DrugWithTradeName', 3:'DomesticApproval', 4:'FDAApproval', 5:'DomesticTrials'})
+        print(self.pgVer)
+        if(self._isIn()):
+            tag = "SUMMARY2"
+            strs = self._Tag2Str(tag)
+            df = pd.read_table(io.StringIO(strs), sep='\t', header=None)
+            df = df.rename(columns ={0:'NumberInReport', 1:'LinkedGeneSymbol', 2: 'DrugWithTradeName', 3:'DomesticApproval', 4:'FDAApproval', 5:'DomesticTrials'})
 
-        for key, val in self.id_dict.items():
-            df[key] = pd.Series([val for i in range(len(df))]).values
-        #
-        # id_df = pd.DataFrame(self.id_dict, index=[tag])
-        # df = pd.concat([atr_df, id_df], axis=1)
-        #df = pd.read_table(strs, sep="\t")
-        return df
+            for key, val in self.id_dict.items():
+                df[key] = pd.Series([val for i in range(len(df))]).values
+            #
+            # id_df = pd.DataFrame(self.id_dict, index=[tag])
+            # df = pd.concat([atr_df, id_df], axis=1)
+            #df = pd.read_table(strs, sep="\t")
+            return df
+        else:
+            print("pg ver is out of service.")
+            return None
 
     def getHeader(self):
         print("get header")
@@ -588,11 +599,11 @@ class txt2DF():
 
         ##tsr_annotated
         s0 = str_list[0]
-        tags0 = re.findall(r"[A-Z]+[A-Za-z\(\)]+ を用いた国内治験・臨床試験\(1\)\t\t\t\tDTITLE\n", s0)
+        tags0 = re.findall(r"[A-Z]+[A-Za-z\(\)]+ を用いた国内治験・臨床試験\([0-9]+\)\t\t\t\tDTITLE\n", s0)
         tags0 = [re.findall(r"[A-Z]+[A-Za-z\(\)]+", i)[0] for i in tags0]
 
 
-        strs0 = re.split(r"[A-Z]+[A-Za-z\(\)]+ を用いた国内治験・臨床試験\(1\)\t\t\t\tDTITLE\n", s0)
+        strs0 = re.split(r"[A-Z]+[A-Za-z\(\)]+ を用いた国内治験・臨床試験\([0-9]+\)\t\t\t\tDTITLE\n", s0)
         strs0 = self._delEmp(strs0)
         #print(strs0)
         df0 = self._parseTrialJP(strs0, tags0)

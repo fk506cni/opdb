@@ -100,6 +100,7 @@ class ConnectDB():
             print("lengths is not equal.")
             return ""
         condition = self.makeAndSentence(collist, vallist)
+        print("condition is "+condition)
         connection = pyodbc.connect(self.connectionString)
         cursor = connection.cursor()
         sql = "select * from " + table + " where " + condition
@@ -114,7 +115,10 @@ class ConnectDB():
     def makeAndSentence(self, collist, vallist):
         condition = ""
         for (col, val) in zip(collist, vallist):
-            if type(val) != str:
+            if type(val) is not str:
+                # print(val)
+                # print(type(val))
+                # print("is not str")
                 condition = condition + col + " = " + str(val) + " and "
             else:
                 condition = condition + col + " = '" + val + "' and "
@@ -122,6 +126,47 @@ class ConnectDB():
         print(condition)
         return (condition)
 
+    def modTableData(self, collist, vallist, keycolIndx, table):
+        #this indicate index of key in collist
+        print(table)
+        print(collist)
+        print(vallist)
+        print(keycolIndx)
+
+        wh_col = [collist[i] for i in keycolIndx]
+        st_col = [collist[i] for i in range(len(collist)) if i not in keycolIndx]
+        print(wh_col)
+        wh_val = [vallist[i] for i in keycolIndx]
+        st_val = [vallist[i] for i in range(len(vallist)) if i not in keycolIndx]
+        print(wh_val)
+
+        if self.isDuplData(table, wh_col, wh_val):
+            #make where
+            wh = " where "
+            for (col, val) in zip(wh_col, wh_val):
+                wh = wh+col+" = '"+val+"' and "
+            wh = wh[: -4]
+            print("where sentence:"+wh)
+
+            #make set
+            st = " set "
+            for (col, val) in zip(st_col, st_val):
+                st = st+col+"='"+val+"', "
+            st = st[:-2]
+            print("set sentence:"+st)
+
+            #make update
+            upd = "update "+table+" "+st+" "+wh
+            print(upd)
+
+            self.exSQL(upd)
 
 #
 #unko.getCollumnNames("PatientInfo")
+#
+# unko = ConnectDB()
+# unko.modTableData(['jpTestID', 'KUH_ReportID', 'ReportID', 'ReportDate', 'jpCreator','jpRefver', 'jpPgver', 'jpNum_drugs', 'jpTSR_filename', 'jpDesease'],
+#                   ['OP18041901KUH', 'KUH00226', 'S5907059', '2018-05-30 11:18:15.062000', 'AH', 'opref1804', '2.5.4',
+#                    '16', 'S5907059_COMPLETE.pdf', '胃癌,固形腫瘍'],
+#                   [2], "Reports")
+#
