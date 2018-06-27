@@ -88,7 +88,7 @@ class ConnectDB():
             sep, quat, trim, sent = ", ", "", -2, "("
         for w in wordlist:
             if type(w) != str:
-                w = str(w)
+                w = quat+ str(w)+ quat
             else:
                 w = quat + w + quat
             sent = sent + w + sep
@@ -119,7 +119,7 @@ class ConnectDB():
                 # print(val)
                 # print(type(val))
                 # print("is not str")
-                condition = condition + col + " = " + str(val) + " and "
+                condition = condition + col + " = '" + str(val) + "' and "
             else:
                 condition = condition + col + " = '" + val + "' and "
         condition = condition[:-5]
@@ -161,12 +161,15 @@ class ConnectDB():
 
             self.exSQL(upd)
 
+    def checkEsc(self):
+        connection = pyodbc.connect(self.connectionString)
+        print("esc search")
+        print(connection.searchescape)
+
+
 #
 #unko.getCollumnNames("PatientInfo")
 #
 # unko = ConnectDB()
-# unko.modTableData(['jpTestID', 'KUH_ReportID', 'ReportID', 'ReportDate', 'jpCreator','jpRefver', 'jpPgver', 'jpNum_drugs', 'jpTSR_filename', 'jpDesease'],
-#                   ['OP18041901KUH', 'KUH00226', 'S5907059', '2018-05-30 11:18:15.062000', 'AH', 'opref1804', '2.5.4',
-#                    '16', 'S5907059_COMPLETE.pdf', '胃癌,固形腫瘍'],
-#                   [2], "Reports")
-#
+# unko.checkEsc()
+

@@ -61,13 +61,14 @@ class PutRec2FB():
 class PutJPRec2FB():
 
     def __init__(self, tpath):
+        print("putJp ver 1")
         self.t2 = txt2DF(tpath)
         self.cd = ConnectDB()
         print("processing data:"+tpath)
 
         self.df_report = self.t2.getInfo()
-        # self.df_drug = self.t2.getSummary2()
-        # self.df_trial = self.t2.getDetail()
+        self.df_drug = self.t2.getSummary2()
+        self.df_trial = self.t2.getDetail()
 
     def _putRec2FB(self, df, table):
         collist = list(df.columns)
@@ -107,8 +108,10 @@ class PutJPRec2FB():
 
     def addData(self):
         self._modReportJP()
-        # self._putDrugsJP()
-        # self._putTrialsJP()
+        if self.df_drug is not None:
+            self._putDrugsJP()
+        if self.df_trial is not None:
+            self._putTrialsJP()
 
 
 
@@ -139,6 +142,6 @@ class PutJPRec2FB():
 #list(pb.df_marker.iloc[1])
 #list(pb.df_marker.columns)
 #
-# tpath = "D:/Cloud/Dropbox/DBs/POproto/rep/jrep/OP15040706KUH_KUH00019_S4876012_jrep.data"
+# tpath = "D:/Cloud/Dropbox/DBs/POproto/rep/jrep/xxx.data"
 # pj = PutJPRec2FB(tpath)
 # pj.addData()

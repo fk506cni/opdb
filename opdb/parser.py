@@ -1,5 +1,6 @@
 
 import math
+import numpy as np
 import pandas as pd
 import re
 import io
@@ -210,6 +211,7 @@ class Xml2DF():
 
         for col in df.__iter__():
             #print(col)
+            #this is for escape ' for sql sentence
             df[col] = df[col].replace("'", "''", regex=True)
         return df.fillna("NA")
 
@@ -440,12 +442,13 @@ class txt2DF():
                           ["実施機関（連絡先）", "TrialInst_Contact"]]
 
     def __init__(self, tpath):
-        print("txt2DF ver1.1")
+        print("txt2DF ver1.3")
         #tpath = "D:/Cloud/Dropbox/DBs/POproto/rep/jrep/unkotest.data"
         f = open(tpath,'r',encoding="utf-8")
         data = f.read()
         f.close()
         self.pd = pd
+        self.np = np
         strlist = re.split('\[[0-9A-Z]*\]\\n', data)
         self.strlist = strlist[1:len(strlist)]
         taglist = re.findall('\[[0-9A-Z]*\]\\n', data)
@@ -474,25 +477,34 @@ class txt2DF():
 
     def _ishigh(self, ver1, ver2):
         v1 = list(re.sub(r"\.", "", ver1))
+        print("v1")
+        print(v1)
         v2 = list(re.sub(r"\.", "",ver2))
+        print("v2")
+        print(v2)
         res = False
         vlen = max(len(v1), len(v2))
         for i in range(vlen):
             tI = int(v1[i])
             vI = int(v2[i])
+            print("compare")
+            print(tI)
+            print(vI)
             if tI > vI:
-                res = True
+                res = False
                 break
             elif tI < vI:
-                res = False
+                res = True
                 break
             elif tI == vI:
                 #print("pass: "+str(i))
                 continue
+        print(res)
         return res
 
-    def _isIn(self, lver= "2.3.9", hver="2.6.0"):
+    def _isIn(self, lver= "2.5.2", hver="2.6.0"):
         thisV = self.pgVer
+        print("left:"+lver+", midle:"+thisV+", right:"+hver)
         l_bl = self._ishigh(lver, thisV)
         r_bl = self._ishigh(thisV, hver)
         return l_bl and r_bl
@@ -552,16 +564,21 @@ class txt2DF():
         if(self._isIn()):
             tag = "SUMMARY2"
             strs = self._Tag2Str(tag)
-            df = pd.read_table(io.StringIO(strs), sep='\t', header=None)
-            df = df.rename(columns ={0:'NumberInReport', 1:'LinkedGeneSymbol', 2: 'DrugWithTradeName', 3:'DomesticApproval', 4:'FDAApproval', 5:'DomesticTrials'})
+            print(strs)
+            if strs is "\n":
+                print("summary2 is empty. return None.")
+                return None
+            else:
+                df = pd.read_table(io.StringIO(strs), sep='\t', header=None)
+                df = df.rename(columns ={0:'NumberInReport', 1:'LinkedGeneSymbol', 2: 'DrugWithTradeName', 3:'DomesticApproval', 4:'FDAApproval', 5:'DomesticTrials'})
 
-            for key, val in self.id_dict.items():
-                df[key] = pd.Series([val for i in range(len(df))]).values
-            #
-            # id_df = pd.DataFrame(self.id_dict, index=[tag])
-            # df = pd.concat([atr_df, id_df], axis=1)
-            #df = pd.read_table(strs, sep="\t")
-            return df
+                for key, val in self.id_dict.items():
+                    df[key] = pd.Series([val for i in range(len(df))]).values
+                #
+                # id_df = pd.DataFrame(self.id_dict, index=[tag])
+                # df = pd.concat([atr_df, id_df], axis=1)
+                #df = pd.read_table(strs, sep="\t")
+                return df
         else:
             print("pg ver is out of service.")
             return None
@@ -584,56 +601,92 @@ class txt2DF():
     def getDetail(self):
         #detail1 is clinical trials from MKI Data base.
         #
+        print("get detail1")
+        if(self._isIn()):
 
-        tag = "DETAIL1"
-        strs = self._Tag2Str(tag)
-        strs = [re.sub(r"\[BR\]", "", s) for s in strs]
-        str_list = re.split(r"2-[0-9]\. [0-9a-zA-Zぁ-んァ-ン一-龥\t・, ' ]+\n", strs)
-        while str_list.count("") > 0:
-            del str_list[str_list.index("")]
-        tag_list = re.findall(r"2-[0-9]\. [0-9a-zA-Zぁ-んァ-ン一-龥\t・, ' ]+\n", strs)
-        # for s , tag in zip(str_list, tag_list):
-        #     print("unko")
-        #     print(tag)
-        #     print(s)
+            tag = "DETAIL1"
+            strs = self._Tag2Str(tag)
+            if strs is "\n":
+                print("detail is empty. return None")
+                return None
+            else:
+                #print(strs)
 
-        ##tsr_annotated
-        s0 = str_list[0]
-        tags0 = re.findall(r"[A-Z]+[A-Za-z\(\)]+ を用いた国内治験・臨床試験\([0-9]+\)\t\t\t\tDTITLE\n", s0)
-        tags0 = [re.findall(r"[A-Z]+[A-Za-z\(\)]+", i)[0] for i in tags0]
+                ##
+                strs = re.sub(r"\n\)\[BR\]", ")", strs)
+                strs = re.sub(r"\t\tNCT0", "\tNCT0", strs)
+                strs = re.sub(r"\t\tJapicCTI", "\tJapicCTI", strs)
+                strs = re.sub(r"\t\tクインタイルズ", "\tクインタイルズ", strs)
+                strs = re.sub(r"f_ct\t\t\t", "f_ct", strs)
+                strs = re.sub(r"\[BR\]", "", strs)
+
+                print(strs)
+                str_list = re.split(r"2-[0-9]\. [0-9a-zA-Zぁ-んァ-ン一-龥\t・, ' ]+\n", strs)
+                print(str_list)
+                str_list = str_list[1:]
+                print(len(str_list))
+                # while str_list.count("") > 0:
+                #     del str_list[str_list.index("")]
+                tag_list = re.findall(r"2-[0-9]\. [0-9a-zA-Zぁ-んァ-ン一-龥\t・, ' ]+\n", strs)
+                # for s , tag in zip(str_list, tag_list):
+                #     print("unko")
+                #     print(tag)
+                #     print(s)
+
+                ##tsr_annotated
+                if (str_list[0] != "") and (str_list[0] != "（対象となる試験はありません）\n\n") :
+                    s0 = str_list[0]
+                    tags0 = re.findall(r"[A-Z0-9]+[-A-Za-z0-9\(\)]+ を用いた国内治験・臨床試験\([0-9]+\)\t\t\t\tDTITLE\n", s0)
+                    tags0 = [re.findall(r"[A-Z0-9]+[-A-Za-z0-9\(\)]+", i)[0] for i in tags0]
 
 
-        strs0 = re.split(r"[A-Z]+[A-Za-z\(\)]+ を用いた国内治験・臨床試験\([0-9]+\)\t\t\t\tDTITLE\n", s0)
-        strs0 = self._delEmp(strs0)
-        #print(strs0)
-        df0 = self._parseTrialJP(strs0, tags0)
-        df0["IsInTSR"] = pd.Series(["True" for i in range(len(df0))]).values
-        df0["lookEffective"] = pd.Series(["NA" for i in range(len(df0))]).values
-        df0["needTargetinGeneMutation"] = pd.Series(["NA" for i in range(len(df0))]).values
+                    strs0 = re.split(r"[A-Z0-9]+[-A-Za-z0-9\(\)]+ を用いた国内治験・臨床試験\([0-9]+\)\t\t\t\tDTITLE\n", s0)
+                    strs0 = self._delEmp(strs0)
+                    #print(strs0)
+                    df0 = self._parseTrialJP(strs0, tags0)
+                    df0["IsInTSR"] = pd.Series(["True" for i in range(len(df0))]).values
+                    df0["lookEffective"] = pd.Series(["NA" for i in range(len(df0))]).values
+                    df0["needTargetinGeneMutation"] = pd.Series(["NA" for i in range(len(df0))]).values
+                else:
+                    df0 = None
 
-        ##jp report annotated
-        s1 = str_list[1]
-        #print(s1)
-        df1 = self._parseTrialJP([s1], ["NA"])
-        df_lkEf = [self._bool2str("★" in s) for s in df1.loc[:, "TrialName"]]
-        df_ndTGM = [self._bool2str("◎" in s) for s in df1.loc[:, "TrialName"]]
+                ##jp report annotated
+                if (str_list[1] is not "") and (str_list[1] != "（対象となる試験はありません）\n\n"):
+                    s1 = str_list[1]
+                    #print("s1 is \n"+s1)
+                    print([s1])
+                    print("NA")
+                    df1 = self._parseTrialJP([s1], ["NA"])
+                    df_lkEf = [self._bool2str("★" in s) for s in df1.loc[:, "TrialName"]]
+                    df_ndTGM = [self._bool2str("◎" in s) for s in df1.loc[:, "TrialName"]]
 
-        df1["IsInTSR"] = pd.Series(["False" for i in range(len(df1))]).values
-        df1["lookEffective"] = pd.Series(df_lkEf).values
-        df1["needTargetinGeneMutation"] = pd.Series(df_ndTGM).values
+                    df1["IsInTSR"] = pd.Series(["False" for i in range(len(df1))]).values
+                    df1["lookEffective"] = pd.Series(df_lkEf).values
+                    df1["needTargetinGeneMutation"] = pd.Series(df_ndTGM).values
+                else:
+                    df1 = None
 
-        df = pd.concat([df0, df1])
-        return df
+                df = pd.concat([df0, df1])
+
+                df = self.dfEsc4SQL(df)
+
+                df["AnnotatedReportID"] = self.pd.Series([self.reportID["ReportID"] for _ in range(len(df))]).values
+                df["KUH_ReportID"] = self.pd.Series([self.kuhID["KUH_ReportID"] for _ in range(len(df))]).values
+                print(df)
+                return df
+        else:
+            return None
 
     def _parseTrialJP(self, strs, tags):
         dfs =[]
         # print(len(strs))
         # print(len(tags))
         for s, tag in zip(strs, tags):
+            #add collumn names.
             s = re.sub(r"試験ID\t対象疾患\t試験名称\t実施機関（連絡先）\tDHEAD\tclass\tf_curated\tf_ct",
                        "試験ID\t対象疾患\t試験名称\t実施機関（連絡先）\tDHEAD\tclass\tf_curated\tf_ct\tunmet0\tunmet1\tunmet2",
                        s)
-            # print(s)
+            print("pre io string: \n"+s)
             df_i = pd.read_table(io.StringIO(s), sep="\t")
             df_i["DrugInTSR"] = pd.Series([tag for i in range(len(df_i))]).values
             dfs.append(df_i)
@@ -644,11 +697,32 @@ class txt2DF():
         df = self._replaceDFcolnames(df, self.Replacelist_trials)
         return df
 
+    def dfEsc4SQL(self, df):
+        rep_dict = {"'":"''"
+                    }
+        print(rep_dict)
+        # print(list(escChr))
+        for col in df.__iter__():
+            print(col)
+            if df[col].dtype == self.np.object:
+                print("type is object")
+                df[col] = df[col].replace(rep_dict, regex=True)
+                #df[col] = df[col].str.replace('UMIN0000', "unkonuko")
+        return df
+
 
 #
-#
-# tpath = "D:/Cloud/Dropbox/DBs/POproto/rep/jrep/unkotest.data"
+# # #
+# tpath = "D:/Cloud/Dropbox/DBs/POproto/rep/jrep/xxx.data"
 # t2 = txt2DF(tpath)
+# df = t2.getDetail()
+# # df.shape
+# df.columns
+# # # df["TrialID"].datype
+# # df["f_ct"]
+# print(df["f_ct"].dtype)
+# print(df["TrialID"].dtype == np.object)
+# # t2.dfEsc4SQL(None)
 # t2._Tag2Str('SUMMARY1')
 # t2._Tag2Str("HEADER")
 # df_afw = t2.getInfo()

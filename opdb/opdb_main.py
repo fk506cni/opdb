@@ -18,7 +18,7 @@ class main():
 
 
 
-mn = main()
+#mn = main()
 
 class mainJp():
 
