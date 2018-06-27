@@ -525,7 +525,7 @@ class txt2DF():
             if(pre in df.columns):
                 df = df.rename(columns={pre: post})
             else:
-                df[post] = self.pd.Series(["No" for i in range(len(df.index))]).values
+                df[post] = self.pd.Series(["None" for i in range(len(df.index))]).values
         return df
 
     def _Tag2Str(self, tag):
@@ -572,12 +572,12 @@ class txt2DF():
                 df = pd.read_table(io.StringIO(strs), sep='\t', header=None)
                 df = df.rename(columns ={0:'NumberInReport', 1:'LinkedGeneSymbol', 2: 'DrugWithTradeName', 3:'DomesticApproval', 4:'FDAApproval', 5:'DomesticTrials'})
 
-                for key, val in self.id_dict.items():
-                    df[key] = pd.Series([val for i in range(len(df))]).values
-                #
-                # id_df = pd.DataFrame(self.id_dict, index=[tag])
-                # df = pd.concat([atr_df, id_df], axis=1)
-                #df = pd.read_table(strs, sep="\t")
+                # for key, val in self.id_dict.items():
+                #     df[key] = pd.Series([val for i in range(len(df))]).values
+
+                df["AnnotatedReportID"] = pd.Series([self.reportID["ReportID"] for _ in range(len(df))]).values
+                df["KUH_ReportID"] = pd.Series([self.kuhID["KUH_ReportID"] for _ in range(len(df))]).values
+
                 return df
         else:
             print("pg ver is out of service.")
@@ -617,6 +617,8 @@ class txt2DF():
                 strs = re.sub(r"\t\tNCT0", "\tNCT0", strs)
                 strs = re.sub(r"\t\tJapicCTI", "\tJapicCTI", strs)
                 strs = re.sub(r"\t\tクインタイルズ", "\tクインタイルズ", strs)
+                #for 185
+                strs = re.sub(r"abbvie\.com\t\)", "abbvie.com)", strs)
                 strs = re.sub(r"f_ct\t\t\t", "f_ct", strs)
                 strs = re.sub(r"\[BR\]", "", strs)
 
@@ -715,6 +717,8 @@ class txt2DF():
 # # #
 # tpath = "D:/Cloud/Dropbox/DBs/POproto/rep/jrep/xxx.data"
 # t2 = txt2DF(tpath)
+# df = t2.getSummary2()
+#
 # df = t2.getDetail()
 # # df.shape
 # df.columns
