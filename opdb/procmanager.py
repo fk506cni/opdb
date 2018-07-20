@@ -2,6 +2,7 @@
 from opdb.connector import ConnectDB
 from opdb.parser import Xml2DF
 from opdb.parser import txt2DF
+import pandas as pd
 
 class PutRec2FB():
 
@@ -115,6 +116,35 @@ class PutJPRec2FB():
 
 
 
+
+class xml2tsv():
+
+    def __init__(self, xpath, outdir):
+        #self.cd = ConnectDB()
+        self.xd = Xml2DF(xpath)
+        self.df_report = self.xd.getReportDF()
+        self.df_bm = self.xd.getBMmerge()
+        self.df_trial = self.xd.getTrialsDF()
+        self.df_tx = self.xd.getTxsDF()
+        self.outdir = outdir
+        print("input_path: "+xpath)
+        print("output_dir: "+outdir)
+
+    def saveTsv(self):
+        #report
+        file0 = self.outdir+self.xd.ids["AnnotatedReportID"]
+
+        repfile = file0+"_report.tsv"
+        self.df_report.to_csv(repfile, sep="\t", index=False)
+
+        bmfile = file0+"_biomarkers.tsv"
+        self.df_bm.to_csv(bmfile, sep="\t", index=False)
+
+        trialfile = file0+"_trialww.tsv"
+        self.df_trial.to_csv(trialfile, sep="\t", index=False)
+
+        drugfile = file0+"_drugww.tsv"
+        self.df_tx.to_csv(drugfile, sep="\t", index=False)
 
 
 

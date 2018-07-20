@@ -165,9 +165,14 @@ class Xml2DF():
         # print(bi.attrib)
         # print(bi.attrib["marker"])
         info = {}
-        info.update({"GeneSymbol": bi.attrib["marker"]})
+        # info.update({"GeneSymbol": bi.attrib["marker"]})
 
         bio_summary = self.getTree2TreeByLabel(bi, ["biomarker-summary"])
+        # bio_summary_result_text = bio_summary.attrib["results"]
+        # bio_summary_result_text = str.replace(bio_summary_result_text,"MUTN (seq): ", "")
+        # bio_summary_result = {"Result_1_1":bio_summary_result_text}
+        # info.update(bio_summary_result)
+
         # info.update(bio_summary.attrib)
         bio_function = self.getTree2TreeByLabel(bi, ["biomarker-summary", "content"])
         info.update({"AnnotationSummary_2_x_1": bio_function.text})
@@ -206,8 +211,13 @@ class Xml2DF():
     def getBMmerge(self):
         print("get BM df")
         df_summary = self.getSummaryDF()
+        df_summary.index = range(len(df_summary))
         df_bim = self.getMarkersDF()
-        df = self.pd.merge(df_summary, df_bim, on='GeneSymbol')
+        df_bim.index = range(len(df_bim))
+        # df = self.pd.merge(df_summary, df_bim, on='GeneSymbol')
+        print(df_summary.shape)
+        print(df_bim.shape)
+        df = self.pd.concat([df_summary, df_bim], axis=1)
 
         for col in df.__iter__():
             #print(col)
@@ -379,17 +389,22 @@ class Xml2DF():
         return df
 
 
-
-#xpath = "D:/Cloud/Dropbox/DBs/POproto/rep/xxx_COMPLETE.xml"
-#op = Xml2DF(xpath)
-# # # # string = "afwwerre'afweg'aef"
-# # # # string2 = op.procStrQ(string)
-# # # # print(string2)
+#
+# xpath = "D:/Cloud/Dropbox/DBs/POproto/rep/xmls/S4876012_COMPLETE.xml"
+# op = Xml2DF(xpath)
+# # # # # string = "afwwerre'afweg'aef"
+# # # # # string2 = op.procStrQ(string)
+# # # # # print(string2)
 # df = op.getSummaryDF()
+# df.index = range(len(df))
 # df2 = op.getMarkersDF()
-#df3 = op.getTrialsDF()
-# df = op.getTxsDF()
-# df = op.getBMmerge()
+# df2.index =range(len(df))
+# #df3 = op.getTrialsDF()
+# # df = op.getTxsDF()
+# df1 = op.getBMmerge()
+#
+#
+# df_unko = pd.concat([df, df2], axis=1, sort=False)
 # list(df.columns).index("Phase_1_Data_2_x_4")
 # "PR's across" in df.iat[1,13]
 # "PR''s across" in df.iat[1,13]
@@ -434,7 +449,23 @@ class txt2DF():
     Replacelist_header = [["レポート作成日","ReportedDate"],
                           ["MKI検査番号","MKI_ID"],
                           ["識別番号","MKI_sampleID"],
-                          ["検体ID",""]]
+                          ["検体ID","MKI_sampleIDSxx"]]
+
+    Replacelist_RepAndHeader =  [["testid", "jpTestID"],
+                                 ["patientid", "KUH_ReportID"],
+                                 ["reportid", "ReportID"],
+                                 ["datetime", "ReportDate"],
+                                 ["creator", "jpCreator"],
+                                 ["refver", "jpRefver"],
+                                 ["pgver", "jpPgver"],
+                                 ["num-drugs", "jpNum_drugs"],
+                                 ["TSRファイル名", "jpTSR_filename"],
+                                 ["desease", "jpDesease"],
+                                 ["レポート作成日", "ReportedDate"],
+                                 ["MKI検査番号", "MKI_ID"],
+                                 ["識別番号", "MKI_sampleID"],
+                                 ["検体ID", "MKI_sampleIDSxx"]
+                                 ]
 
     Replacelist_trials = [["試験ID", "TrialID"],
                           ["対象疾患", "TargetDis"],
@@ -470,6 +501,7 @@ class txt2DF():
 
         self.reportID = {"ReportID":d["reportid"]}
         self.kuhID = {"KUH_ReportID": d["patientid"]}
+        self.tag0 = d["reportid"]
         self.pgVer = d["pgver"]
         self.id_dict = dict()
         self.id_dict.update(self.reportID)
@@ -553,10 +585,17 @@ class txt2DF():
             key, atr = tuple(s.split("="))
             d.update({key: atr})
         #print(d)
-        df = self.pd.DataFrame(d, index=[tag])
-        df = self._replaceDFcolnames(df, self.Replacelist_reportJP)
+        df = self.pd.DataFrame(d, index=[self.tag0])
+#        df = self._replaceDFcolnames(df, self.Replacelist_reportJP)
+
+        df_head = self.getHeader()
+
+        df_mg = self.pd.concat([df, df_head], axis=1)
+
+        df_mg = self._replaceDFcolnames(df_mg, self.Replacelist_RepAndHeader)
+
         #print(df)
-        return df
+        return df_mg
 
     def getSummary2(self):
         print("get summary2")
@@ -578,6 +617,13 @@ class txt2DF():
                 df["AnnotatedReportID"] = pd.Series([self.reportID["ReportID"] for _ in range(len(df))]).values
                 df["KUH_ReportID"] = pd.Series([self.kuhID["KUH_ReportID"] for _ in range(len(df))]).values
 
+                drugNames = list(df["DrugWithTradeName"])
+                drugNames = [re.sub(r"\[BR\]", "", i) for i in drugNames]
+                df["DrugWithTradeName"] = pd.Series(drugNames).values
+
+                drugNames = [re.sub(r"\([a-zA-Z0-9]+\)", "", i) for i in drugNames]
+                df["DrugNames"] = pd.Series(drugNames).values
+
                 return df
         else:
             print("pg ver is out of service.")
@@ -593,9 +639,17 @@ class txt2DF():
         for s in strs:
             (key, atr) = tuple(re.split(r": |： ", s))
             d_head.update({key: atr})
-        print(d_head)
+        # print(d_head)
+        # print(d_head["レポート作成日"])
+        # print(re.sub( r'[年月日]',"/",d_head["レポート作成日"]))
+        d_head["レポート作成日"] = re.sub( r'[年月]',"/",d_head["レポート作成日"])
+        d_head["レポート作成日"] = re.sub(r'[日]', "", d_head["レポート作成日"])
 
-        df = pd.DataFrame(d_head, index=[tag])
+        df = pd.DataFrame(d_head, index=[self.tag0])
+
+        # df = self._replaceDFcolnames(df, self.Replacelist_header)
+
+        # print(df)
         return df
 
     def getDetail(self):
@@ -674,6 +728,11 @@ class txt2DF():
 
                 df["AnnotatedReportID"] = self.pd.Series([self.reportID["ReportID"] for _ in range(len(df))]).values
                 df["KUH_ReportID"] = self.pd.Series([self.kuhID["KUH_ReportID"] for _ in range(len(df))]).values
+
+#                df["TrialID_short"] = df["TrialID"].str.extract(r"^[-a-zA-Z0-9]*")
+                df["TrialID_short"] = self.pd.Series([re.findall(r"^[-a-zA-Z0-9]*", i)[0] for i in df["TrialID"]])
+                df["TrialInst_Contact_short"] = self.pd.Series([i.split("(")[0] for i in df["TrialInst_Contact"]]).values
+
                 print(df)
                 return df
         else:
@@ -697,6 +756,7 @@ class txt2DF():
         else:
             df = dfs[0]
         df = self._replaceDFcolnames(df, self.Replacelist_trials)
+
         return df
 
     def dfEsc4SQL(self, df):
@@ -714,11 +774,13 @@ class txt2DF():
 
 
 #
-# # #
-# tpath = "D:/Cloud/Dropbox/DBs/POproto/rep/jrep/xxx.data"
-# t2 = txt2DF(tpath)
-# df = t2.getSummary2()
-#
+# # # #
+# tpath = "D:/Cloud/Dropbox/DBs/POproto/rep/jrep/xxx_jrep.data"
+#  t2 = txt2DF(tpath)
+# # df = t2.getSummary2()
+# df = t2.getHeader()
+# df = t2.getInfo()
+
 # df = t2.getDetail()
 # # df.shape
 # df.columns
