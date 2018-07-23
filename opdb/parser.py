@@ -297,7 +297,7 @@ class Xml2DF():
 
         tx.update({"CurrentStatus4Other": ": ".join([tx_stsInOtherST, tx_stsInOtherDisList])})
         tx_stsInOther = ": ".join(["OtherDis", tx_stsInOtherST, tx_stsInOtherDisList])
-        tx.update({"CurrentStatus": tx_stsInThis + "\n" + tx_stsInOther})
+        tx.update({"CurrentStatus": tx_stsInThis + ", " + tx_stsInOther})
 
         dftx = self.pd.DataFrame(tx, index=[tx["DrugName"]])
         return (dftx)
@@ -390,7 +390,7 @@ class Xml2DF():
 
 
 #
-# xpath = "D:/Cloud/Dropbox/DBs/POproto/rep/xmls/S4876012_COMPLETE.xml"
+# xpath = "D:/Cloud/Dropbox/DBs/POproto/rep/xmls/xxxx.xml"
 # op = Xml2DF(xpath)
 # # # # # string = "afwwerre'afweg'aef"
 # # # # # string2 = op.procStrQ(string)

@@ -130,22 +130,99 @@ class xml2tsv():
         print("input_path: "+xpath)
         print("output_dir: "+outdir)
 
+        self.metacol = ["FileName", "SourceType"]
+
+        self.metadf = pd.DataFrame(index=[], columns=self.metacol)
+
+
+
     def saveTsv(self):
         #report
         file0 = self.outdir+self.xd.ids["AnnotatedReportID"]
+        tag0 = self.xd.ids["AnnotatedReportID"]
 
-        repfile = file0+"_report.tsv"
-        self.df_report.to_csv(repfile, sep="\t", index=False)
+        if self.df_report is not None:
+            rep = "_report.tsv"
+            repfile = file0 + rep
+            reptag = tag0 + rep
+            meta_rep = pd.DataFrame([[reptag, "reportWW"]], columns=self.metacol)
+            self.metadf = self.metadf.append(meta_rep)
+            self.df_report.to_csv(repfile, sep="\t", index=False)
 
-        bmfile = file0+"_biomarkers.tsv"
-        self.df_bm.to_csv(bmfile, sep="\t", index=False)
+        if self.df_bm is not None:
+            bm = "_biomarkers.tsv"
+            bmfile = file0+bm
+            bmtag = tag0+bm
+            meta_bm = pd.DataFrame([[bmtag, "BM"]], columns=self.metacol)
+            self.metadf = self.metadf.append(meta_bm)
+            self.df_bm.to_csv(bmfile, sep="\t", index=False)
 
-        trialfile = file0+"_trialww.tsv"
-        self.df_trial.to_csv(trialfile, sep="\t", index=False)
+        if self.df_trial is not None:
+            trial = "_trialww.tsv"
+            trialfile = file0+trial
+            trialtag = tag0+trial
+            meta_trial = pd.DataFrame([[trialtag, "trialWW"]], columns=self.metacol)
+            self.metadf = self.metadf.append(meta_trial)
+            self.df_trial.to_csv(trialfile, sep="\t", index=False)
 
-        drugfile = file0+"_drugww.tsv"
-        self.df_tx.to_csv(drugfile, sep="\t", index=False)
+        if self.df_tx is not None:
+            drug = "_drugww.tsv"
+            drugfile = file0+drug
+            drugtag = tag0+drug
+            meta_drug = pd.DataFrame([[drugtag, "drugWW"]], columns=self.metacol)
+            self.metadf = self.metadf.append(meta_drug)
+            self.df_tx.to_csv(drugfile, sep="\t", index=False)
 
+
+    def getMetaDF(self):
+        return self.metadf
+
+class data2tsv():
+
+    def __init__(self, tpath, outdir):
+        self.tpath = tpath
+        self.outdir = outdir
+        self.t2 =txt2DF(tpath)
+        self.df_report = self.t2.getInfo()
+        self.df_drug = self.t2.getSummary2()
+        self.df_trial = self.t2.getDetail()
+        self.reportID = self.t2.tag0
+
+        print("input_path: "+tpath)
+        print("output_dir: "+outdir)
+        self.metacol = ["FileName", "SourceType"]
+        self.metadf = pd.DataFrame(index=[], columns=self.metacol)
+
+    def saveData(self):
+        file0 = self.outdir+self.reportID
+        tag0 = self.reportID
+
+        if self.df_report is not None:
+            rep = "_reportJP.tsv"
+            repfile = file0 + rep
+            reptag = tag0 + rep
+            meta_rep = pd.DataFrame([[reptag, "reportJP"]], columns=self.metacol)
+            self.metadf = self.metadf.append(meta_rep)
+            self.df_report.to_csv(repfile, sep="\t", index=False)
+
+        if self.df_trial is not None:
+            trial = "_trialJP.tsv"
+            trialfile = file0+trial
+            trialtag = tag0+trial
+            meta_trial = pd.DataFrame([[trialtag, "trialJP"]], columns=self.metacol)
+            self.metadf = self.metadf.append(meta_trial)
+            self.df_trial.to_csv(trialfile, sep="\t", index=False)
+
+        if self.df_drug is not None:
+            drug = "_drugJP.tsv"
+            drugfile = file0+drug
+            drugtag = tag0+drug
+            meta_drug = pd.DataFrame([[drugtag, "drugJP"]], columns=self.metacol)
+            self.metadf = self.metadf.append(meta_drug)
+            self.df_drug.to_csv(drugfile, sep="\t", index=False)
+
+    def getMetaDF(self):
+        return self.metadf
 
 
 # xpath = "D:/Cloud/Dropbox/DBs/POproto/rep/xxx_COMPLETE.xml"
@@ -175,3 +252,9 @@ class xml2tsv():
 # tpath = "D:/Cloud/Dropbox/DBs/POproto/rep/jrep/xxx.data"
 # pj = PutJPRec2FB(tpath)
 # pj.addData()
+
+# import pandas as pd
+# un = pd.DataFrame(index=[], columns=["un","ko"])
+# ko = pd.DataFrame([["unko", "unkkko"]], columns=["un","ko"])
+# un = un.append(ko)
+# print(un)

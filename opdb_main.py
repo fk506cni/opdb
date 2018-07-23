@@ -1,9 +1,11 @@
 import os
 import re
 import sys
+import pandas as pd
 from opdb.procmanager import PutRec2FB
 from opdb.procmanager import PutJPRec2FB
 from opdb.procmanager import xml2tsv
+from opdb.procmanager import data2tsv
 
 class mainN1():
     def __init__(self, dir_path):
@@ -45,8 +47,11 @@ class saveN1AndData():
         self.indir_path = indir
         self.files = os.listdir(indir)
         self.outdir = outdir
+        self.metacol = ["FileName", "SourceType"]
+        self.metadf = pd.DataFrame(index=[], columns=self.metacol)
 
     def saveXmlAndData(self):
+
 
         for file in self.files:
             file = self.indir_path+file
@@ -54,18 +59,32 @@ class saveN1AndData():
             extend = re.findall(r"_jrep\.data$|\.xml$", file)
             print(extend)
 
+            meta_i = []
+
             if len(extend) ==0:
                 print("extend is not data or xml")
             elif re.search(r'\.xml$', extend[0]):
                 print("calling xmlsaver")
                 x2t = xml2tsv(file, self.outdir)
                 x2t.saveTsv()
+                self.metadf = self.metadf.append(x2t.getMetaDF())
+                print(x2t.getMetaDF())
             elif re.search(r'_jrep\.data$', extend[0]):
                 print("calling datasaver")
+                d2t = data2tsv(file, self.outdir)
+                d2t.saveData()
+                self.metadf = self.metadf.append(d2t.getMetaDF())
+                print(d2t.getMetaDF())
             else:
                 print("unko")
 
-#mj = mainJp()
+        self.saveDataAstSV()
+
+    def saveDataAstSV(self):
+        self.metadf.to_csv(self.outdir+"meta.tsv", sep="\t", index=False)
+
+    def getMetaDF(self):
+        return self.metadf
 
 
 if __name__ == '__main__':
@@ -93,6 +112,9 @@ if __name__ == '__main__':
             print("mode is data2tsv... underconstruction")
             sv = saveN1AndData(xdir, outdir)
             sv.saveXmlAndData()
+            dfx = sv.getMetaDF()
+
+
     else:
         print("give me 6 args.")
 
