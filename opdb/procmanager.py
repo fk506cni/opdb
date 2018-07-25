@@ -220,7 +220,7 @@ class data2tsv():
             meta_rep = pd.DataFrame([[reptag, "reportJP"]], columns=self.metacol)
             self.metadf = self.metadf.append(meta_rep)
 
-            self.df_report = self._colsort(self.df_report)
+            #self.df_report = self._colsort(self.df_report)
             self.df_report.to_csv(repfile, sep="\t", index=False)
 
         if self.df_trial is not None:

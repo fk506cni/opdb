@@ -594,8 +594,11 @@ class txt2DF():
 
         df_mg = self._replaceDFcolnames(df_mg, self.Replacelist_RepAndHeader)
 
+        newcol = [i[1] for i in self.Replacelist_RepAndHeader]
+
+
         #print(df)
-        return df_mg
+        return df_mg.loc[:, newcol]
 
     def getSummary2(self):
         print("get summary2")
