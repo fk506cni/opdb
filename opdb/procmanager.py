@@ -134,7 +134,10 @@ class xml2tsv():
 
         self.metadf = pd.DataFrame(index=[], columns=self.metacol)
 
-
+    def _colsort(self, df):
+        cols = df.columns.values
+        cols.sort()
+        return df.loc[:, cols]
 
     def saveTsv(self):
         #report
@@ -147,6 +150,8 @@ class xml2tsv():
             reptag = tag0 + rep
             meta_rep = pd.DataFrame([[reptag, "reportWW"]], columns=self.metacol)
             self.metadf = self.metadf.append(meta_rep)
+
+            self.df_report = self._colsort(self.df_report)
             self.df_report.to_csv(repfile, sep="\t", index=False)
 
         if self.df_bm is not None:
@@ -155,6 +160,8 @@ class xml2tsv():
             bmtag = tag0+bm
             meta_bm = pd.DataFrame([[bmtag, "BM"]], columns=self.metacol)
             self.metadf = self.metadf.append(meta_bm)
+
+            self.df_bm = self._colsort(self.df_bm)
             self.df_bm.to_csv(bmfile, sep="\t", index=False)
 
         if self.df_trial is not None:
@@ -163,6 +170,8 @@ class xml2tsv():
             trialtag = tag0+trial
             meta_trial = pd.DataFrame([[trialtag, "trialWW"]], columns=self.metacol)
             self.metadf = self.metadf.append(meta_trial)
+
+            self.df_trial = self._colsort(self.df_trial)
             self.df_trial.to_csv(trialfile, sep="\t", index=False)
 
         if self.df_tx is not None:
@@ -171,6 +180,8 @@ class xml2tsv():
             drugtag = tag0+drug
             meta_drug = pd.DataFrame([[drugtag, "drugWW"]], columns=self.metacol)
             self.metadf = self.metadf.append(meta_drug)
+
+            self.df_tx = self._colsort(self.df_tx)
             self.df_tx.to_csv(drugfile, sep="\t", index=False)
 
 
@@ -193,6 +204,11 @@ class data2tsv():
         self.metacol = ["FileName", "SourceType"]
         self.metadf = pd.DataFrame(index=[], columns=self.metacol)
 
+    def _colsort(self, df):
+        cols = df.columns.values
+        cols.sort()
+        return df.loc[:, cols]
+
     def saveData(self):
         file0 = self.outdir+self.reportID
         tag0 = self.reportID
@@ -203,6 +219,8 @@ class data2tsv():
             reptag = tag0 + rep
             meta_rep = pd.DataFrame([[reptag, "reportJP"]], columns=self.metacol)
             self.metadf = self.metadf.append(meta_rep)
+
+            self.df_report = self._colsort(self.df_report)
             self.df_report.to_csv(repfile, sep="\t", index=False)
 
         if self.df_trial is not None:
@@ -211,6 +229,8 @@ class data2tsv():
             trialtag = tag0+trial
             meta_trial = pd.DataFrame([[trialtag, "trialJP"]], columns=self.metacol)
             self.metadf = self.metadf.append(meta_trial)
+
+            self.df_trial = self._colsort(self.df_trial)
             self.df_trial.to_csv(trialfile, sep="\t", index=False)
 
         if self.df_drug is not None:
@@ -219,6 +239,8 @@ class data2tsv():
             drugtag = tag0+drug
             meta_drug = pd.DataFrame([[drugtag, "drugJP"]], columns=self.metacol)
             self.metadf = self.metadf.append(meta_drug)
+
+            self.df_drug = self._colsort(self.df_drug)
             self.df_drug.to_csv(drugfile, sep="\t", index=False)
 
     def getMetaDF(self):
@@ -252,9 +274,16 @@ class data2tsv():
 # tpath = "D:/Cloud/Dropbox/DBs/POproto/rep/jrep/xxx.data"
 # pj = PutJPRec2FB(tpath)
 # pj.addData()
-
+#
 # import pandas as pd
-# un = pd.DataFrame(index=[], columns=["un","ko"])
-# ko = pd.DataFrame([["unko", "unkkko"]], columns=["un","ko"])
+# un = pd.DataFrame(index=[], columns=["un","ko","dai", "suki"])
+# ko = pd.DataFrame([["unko", "unkkko","ddai", "sukki"]], columns=["un","ko","dai", "suki"])
 # un = un.append(ko)
+# print(un)
+# col = un.columns.values
+# #col = list(col)
+# col.sort()
+# print(col)
+#
+# un = un.loc[:, col]
 # print(un)
