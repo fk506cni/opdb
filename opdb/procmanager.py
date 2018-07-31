@@ -135,9 +135,11 @@ class xml2tsv():
         self.metadf = pd.DataFrame(index=[], columns=self.metacol)
 
     def _colsort(self, df):
-        cols = df.columns.values
+        df1 = df.copy()
+        cols = list(df.columns.values).copy()
         cols.sort()
-        return df.loc[:, cols]
+        df1 = df1.loc[:, cols]
+        return df1
 
     def saveTsv(self):
         #report
@@ -205,9 +207,11 @@ class data2tsv():
         self.metadf = pd.DataFrame(index=[], columns=self.metacol)
 
     def _colsort(self, df):
-        cols = df.columns.values
+        df1 = df.copy()
+        cols = list(df.columns.values).copy()
         cols.sort()
-        return df.loc[:, cols]
+        df1 = df1.loc[:, cols]
+        return df1
 
     def saveData(self):
         file0 = self.outdir+self.reportID
@@ -220,7 +224,7 @@ class data2tsv():
             meta_rep = pd.DataFrame([[reptag, "reportJP"]], columns=self.metacol)
             self.metadf = self.metadf.append(meta_rep)
 
-            #self.df_report = self._colsort(self.df_report)
+            self.df_report = self._colsort(self.df_report)
             self.df_report.to_csv(repfile, sep="\t", index=False)
 
         if self.df_trial is not None:
@@ -281,7 +285,7 @@ class data2tsv():
 # un = un.append(ko)
 # print(un)
 # col = un.columns.values
-# #col = list(col)
+# col = list(col)
 # col.sort()
 # print(col)
 #
