@@ -2,6 +2,10 @@ import os
 import re
 import sys
 import pandas as pd
+import zipfile
+import shutil
+#from pathlib import Path
+
 from opdb.procmanager import PutRec2FB
 from opdb.procmanager import PutJPRec2FB
 from opdb.procmanager import xml2tsv
@@ -50,6 +54,9 @@ class saveN1AndData():
         self.metacol = ["FileName", "SourceType"]
         self.metadf = pd.DataFrame(index=[], columns=self.metacol)
 
+        if not os.path.isdir(self.outdir):
+            os.makedirs(self.outdir)
+
     def saveXmlAndData(self):
 
 
@@ -91,16 +98,61 @@ if __name__ == '__main__':
     args = sys.argv
     #print(args)
 
+    ##args description
+    #arg1 is mode
+    #arg2 is input_dir(xdir is dir with xml and data)
+    #arg3 is output dir
+    #arg4 is db name
+    #arg5 is user
+    #arg6 is pw
 
-    if(len(args)==7):
-        db = args[1]
-        user = args[2]
-        pw = args[3]
-        mode = args[4]
-        xdir = args[5]
-        outdir = args[6]
+    if(len(args) ==4):
+        mode = args[1]
+        xdir = args[2]
+        outdir = args[3]
+
+        if(mode == "data2tsv"):
+            print("mode is data2tsv... db connection not required.")
+            sv = saveN1AndData(xdir, outdir)
+            sv.saveXmlAndData()
+            dfx = sv.getMetaDF()
+
+        elif(mode =="data2zip"):
+            print("mode is data2zip... db connection not required.")
+            sv = saveN1AndData(xdir, outdir)
+            sv.saveXmlAndData()
+            dfx = sv.getMetaDF()
+
+            outzip = outdir[:-1]+".zip"
+            print("output file: "+outzip)
+
+            shutil.make_archive(outdir[:-1], "zip",outdir)
+
+            # outlist = os.listdir(outdir)
+            #
+            # compFile = zipfile.ZipFile(outzip,'w', zipfile.ZIP_DEFLATED)
+            # for file_i in outlist:
+            #     print(file_i+": will be zipped")
+            #     file_path = outdir+file_i
+            #     compFile.write(file_path)
+            # compFile.close()
+
+
+
+
+
+
+
+    elif(len(args)==7):
+        mode = args[1]
+        xdir = args[2]
+        outdir = args[3]
+        db = args[4]
+        user = args[5]
+        pw = args[6]
 
         if(mode == "data2db"):
+            print("mode is data2db... needs connection to DB")
 
             print(xdir)
             mn = mainN1(xdir)
@@ -108,15 +160,8 @@ if __name__ == '__main__':
 
             mj = mainJp(xdir)
             mj.proc()
-        elif(mode == "data2tsv"):
-            print("mode is data2tsv... underconstruction")
-            sv = saveN1AndData(xdir, outdir)
-            sv.saveXmlAndData()
-            dfx = sv.getMetaDF()
-
-
     else:
-        print("give me 6 args.")
+        print("give me prop args.")
 
 else:
     print("unko!")
