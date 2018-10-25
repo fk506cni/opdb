@@ -251,7 +251,7 @@ class data2tsv():
         return self.metadf
 
 
-# xpath = "D:/Cloud/Dropbox/DBs/POproto/rep/xxx_COMPLETE.xml"
+# xpath = "D:/xx/xx/DBs/xx/rep/xxx_COMPLETE.xml"
 #pb = PutRec2FB(xpath)
 #df = pb.getRecDF()
 #pb.putBM()
@@ -275,7 +275,7 @@ class data2tsv():
 #list(pb.df_marker.iloc[1])
 #list(pb.df_marker.columns)
 #
-# tpath = "D:/Cloud/Dropbox/DBs/POproto/rep/jrep/xxx.data"
+# tpath = "D:/xx/xx/DBs/xx/rep/jrep/xxx.data"
 # pj = PutJPRec2FB(tpath)
 # pj.addData()
 #

@@ -390,7 +390,7 @@ class Xml2DF():
 
 
 #
-# xpath = "D:/Cloud/Dropbox/DBs/POproto/rep/xmls/xxxx.xml"
+# xpath = "D:/xx/xx/xx/xx/rep/xmls/xxxx.xml"
 # op = Xml2DF(xpath)
 # # # # # string = "afwwerre'afweg'aef"
 # # # # # string2 = op.procStrQ(string)
@@ -474,7 +474,7 @@ class txt2DF():
 
     def __init__(self, tpath):
         print("txt2DF ver1.3")
-        #tpath = "D:/Cloud/Dropbox/DBs/POproto/rep/jrep/unkotest.data"
+        #tpath = "D:/xx/xx/xx/xx/rep/jrep/unkotest.data"
         f = open(tpath,'r',encoding="utf-8")
         data = f.read()
         f.close()
@@ -778,7 +778,7 @@ class txt2DF():
 
 #
 # # # #
-# tpath = "D:/Cloud/Dropbox/DBs/POproto/rep/jrep/xxx_jrep.data"
+# tpath = "D:/xx/xx/xx/xx/rep/xx/xxx_jrep.data"
 #  t2 = txt2DF(tpath)
 # # df = t2.getSummary2()
 # df = t2.getHeader()
